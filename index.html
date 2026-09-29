@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>진열대 DPS · 원신 조합 계산기</title>
+  <meta name="description" content="UID만 넣으면 원신 진열대 캐릭터의 종결도와 메이저 조합 DPS를 계산해 줘요.">
+  <meta name="theme-color" content="#0f1220">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <style>
+:root {
+  --bg: #0f1220;
+  --bg2: #161a2d;
+  --card: #1b2036;
+  --card2: #222843;
+  --line: #2d3454;
+  --text: #e9ecf8;
+  --muted: #9aa2c3;
+  --faint: #6b7396;
+  --accent: #f2c46d;
+  --accent2: #ffdf9e;
+  --good: #7ee2a8;
+  --bad: #ff8b8b;
+  --pyro: #ff8a5c;
+  --hydro: #5cb8ff;
+  --cryo: #9fe6f5;
+  --electro: #c38bff;
+  --anemo: #6fe3c1;
+  --geo: #f5c451;
+  --dendro: #a5dd5a;
+  --unknown: #9aa2c3;
+  --r: 14px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: radial-gradient(1200px 500px at 50% -200px, #232a4d 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: var(--accent2); }
+button { font: inherit; cursor: pointer; }
+input { font: inherit; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+.hidden { display: none !important; }
+
+/* 상단바 */
+.top { border-bottom: 1px solid var(--line); background: rgba(15, 18, 32, .75); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.top-inner { display: flex; align-items: center; gap: 10px; height: 54px; }
+.logo { font-weight: 800; font-size: 19px; letter-spacing: -.02em; color: var(--text); text-decoration: none; }
+.logo span { color: var(--accent); margin-left: 2px; }
+.tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; }
+
+/* 검색 */
+.search { padding: 28px 0 8px; }
+.search h1 { font-size: clamp(20px, 5vw, 28px); margin: 0 0 6px; letter-spacing: -.02em; }
+.search .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.search .sub b { color: var(--text); font-weight: 600; }
+.search-row { display: flex; gap: 8px; }
+.search-row input {
+  flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); color: var(--text);
+  border-radius: 12px; padding: 13px 14px; font-size: 16px; letter-spacing: .04em; outline: none;
+}
+.search-row input:focus { border-color: var(--accent); }
+.search-row button {
+  background: linear-gradient(180deg, var(--accent2), var(--accent)); color: #2a1f05; border: 0; border-radius: 12px;
+  padding: 0 20px; font-weight: 700; font-size: 16px; white-space: nowrap;
+}
+.search-row button:disabled { opacity: .6; cursor: wait; }
+.msg { min-height: 22px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.msg.err { color: var(--bad); }
+
+/* 플레이어 */
+.player { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin: 10px 0 16px; }
+.player img { width: 56px; height: 56px; border-radius: 50%; background: var(--card2); flex: none; }
+.player .nick { font-weight: 700; font-size: 18px; }
+.player .meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.player .sig { color: var(--faint); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* 진열대 그리드 */
+.roster-title { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+@media (max-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+.cc {
+  position: relative; display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; color: var(--text);
+  transition: border-color .15s, transform .15s;
+}
+.cc:hover { transform: translateY(-1px); border-color: #3b4470; }
+.cc.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cc img { width: 48px; height: 48px; border-radius: 12px; background: var(--card2); flex: none; object-fit: cover; }
+.cc .n { font-weight: 700; font-size: 14px; line-height: 1.25; }
+.cc .l { font-size: 12px; color: var(--muted); }
+.cc .g { font-size: 11px; font-weight: 700; margin-top: 3px; display: inline-block; padding: 1px 7px; border-radius: 99px; background: var(--card2); }
+.cc .teamdot { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.el-bar { width: 3px; align-self: stretch; border-radius: 3px; flex: none; }
+
+.grade-종결 { color: #ffd76e; }
+.grade-준종결 { color: #c7a5ff; }
+.grade-쓸만함 { color: #7cc9ff; }
+.grade-육성중 { color: #9fe0b0; }
+.grade-시작 { color: var(--muted); }
+
+/* 상세 */
+.detail { margin: 16px 0 24px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.dhead { display: flex; gap: 14px; align-items: center; padding: 16px; background: linear-gradient(90deg, color-mix(in srgb, var(--el) 22%, transparent), transparent 70%); }
+.dhead img { width: 72px; height: 72px; border-radius: 16px; background: var(--card2); flex: none; }
+.dhead .name { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.dhead .sub { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 8px; }
+.tabs button { background: none; border: 0; color: var(--muted); padding: 12px 12px; font-weight: 600; border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+.pane { padding: 16px; }
+
+.scorebox { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.kpi { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.kpi .k { font-size: 12px; color: var(--muted); }
+.kpi .v { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.kpi .v small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.meter { height: 6px; background: var(--card2); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+.box-title { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+.stats { width: 100%; border-collapse: collapse; font-size: 14px; }
+.stats td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.stats td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.weapon { display: flex; gap: 10px; align-items: center; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+.weapon img { width: 48px; height: 48px; flex: none; }
+.weapon .wn { font-weight: 700; }
+.weapon .ws { font-size: 12px; color: var(--muted); }
+
+.arts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.art { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.art .ah { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.art .ah img { width: 36px; height: 36px; flex: none; }
+.art .am { font-weight: 700; font-size: 14px; }
+.art .as { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.art ul { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.art li { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; color: var(--faint); }
+.art li.w1 { color: var(--text); }
+.art li.w2 { color: var(--muted); }
+.art li .rolls { font-size: 11px; color: var(--accent); margin-left: 4px; }
+.art .ascore { font-size: 12px; color: var(--muted); margin-top: 6px; text-align: right; }
+.hint { font-size: 12px; color: var(--faint); margin-top: 10px; }
+
+/* DPS */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip { background: var(--bg2); border: 1px solid var(--line); color: var(--text); border-radius: 99px; padding: 7px 13px; font-weight: 600; font-size: 14px; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #2a1f05; }
+.bigdps { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.bigdps .v { font-size: 34px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.bigdps .k { color: var(--muted); font-size: 14px; }
+.teamname { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+
+.mem { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: var(--bg2); overflow: hidden; }
+.mem summary { list-style: none; display: flex; gap: 10px; align-items: center; padding: 10px; cursor: pointer; }
+.mem summary::-webkit-details-marker { display: none; }
+.mem summary img { width: 40px; height: 40px; border-radius: 10px; flex: none; background: var(--card2); }
+.mem .mn { font-weight: 700; font-size: 14px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; }
+.badge.sc { background: rgba(126, 226, 168, .15); color: var(--good); }
+.badge.df { background: rgba(255, 139, 139, .12); color: var(--bad); }
+.mem .bar { height: 7px; border-radius: 99px; background: var(--card2); margin-top: 5px; overflow: hidden; }
+.mem .bar i { display: block; height: 100%; border-radius: 99px; }
+.mem .md { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.mem .md b { display: block; font-size: 15px; }
+.mem .md span { font-size: 12px; color: var(--muted); }
+.mem .grow { flex: 1; min-width: 0; }
+.hits { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hits th, .hits td { padding: 6px 10px; border-top: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.hits th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.hits td:first-child, .hits th:first-child { text-align: left; }
+.hits th { white-space: nowrap; }
+@media (max-width: 480px) { .hits th, .hits td { padding: 6px 6px; } }
+img[src='data:,'] { visibility: hidden; }
+.finals { font-size: 12px; color: var(--muted); padding: 8px 10px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+
+.section { margin-top: 18px; }
+.buffs { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.buffs li { margin: 3px 0; }
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.opt input[type=number] { width: 72px; background: var(--bg2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 5px 7px; text-align: right; }
+.opt input[type=range] { width: 120px; accent-color: var(--accent); }
+.opt output { min-width: 38px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+.linkbtn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+details.fold > summary { cursor: pointer; font-weight: 700; font-size: 14px; padding: 8px 0; }
+.note { font-size: 12px; color: var(--faint); margin-top: 12px; line-height: 1.6; }
+.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+
+.foot { color: var(--faint); font-size: 12px; padding: 24px 16px 40px; line-height: 1.7; }
+
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* 아카샤 */
+.cc .ak { font-size: 11px; color: var(--accent2); margin-top: 3px; font-weight: 700; white-space: nowrap; letter-spacing: -.02em; }
+.cc .ak span { color: var(--muted); font-weight: 500; margin-right: 3px; }
+.player .meta a { color: var(--accent2); text-decoration: none; }
+.akbox { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+.akbox .box-title { margin-bottom: 6px; }
+.aklist { display: grid; gap: 8px; }
+.akrow { display: grid; grid-template-columns: 92px 1fr; gap: 2px 10px; align-items: center; }
+.akp { font-size: 17px; font-weight: 800; color: var(--accent2); letter-spacing: -.02em; }
+.akn { font-size: 13px; font-weight: 600; }
+.akn span { color: var(--muted); font-weight: 500; }
+.aks { font-size: 12px; color: var(--muted); }
+.akbar { grid-column: 1 / -1; height: 4px; background: var(--card2); border-radius: 99px; overflow: hidden; }
+.akbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.akbox a { color: var(--accent2); }
+.cc > span:not(.el-bar):not(.teamdot) { min-width: 0; }
+.cc .g { white-space: nowrap; }
+.cc .ak { white-space: normal; }
+
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="logo" href="./">진열대<span>DPS</span></a>
+      <span class="tag">원신 조합 계산기</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="search" aria-label="UID 검색">
+      <h1>UID 넣고 내 캐릭터 조합 DPS 보기</h1>
+      <p class="sub">게임에서 <b>프로필 → 캐릭터 진열대</b>에 캐릭터를 올리고 <b>캐릭터 상세 표시</b>를 켜 두면 불러올 수 있어요.</p>
+      <form id="uidForm" class="search-row" autocomplete="off">
+        <input id="uidInput" inputmode="numeric" pattern="\d{9,10}" maxlength="10" placeholder="UID 9자리 (예: 800000000)" aria-label="UID">
+        <button type="submit" id="uidBtn">조회</button>
+      </form>
+      <p id="msg" class="msg" role="status"></p>
+    </section>
+
+    <section id="player" class="player hidden"></section>
+    <section id="roster" class="roster hidden" aria-label="진열대 캐릭터"></section>
+    <section id="detail" class="detail hidden"></section>
+  </main>
+
+  <footer class="wrap foot">
+    데이터: <a href="https://enka.network" target="_blank" rel="noopener">Enka.Network</a> · DPS는 정해 둔 로테이션 기준 추정치예요. 실제 전투와 차이가 있을 수 있어요.<br>
+    Genshin Impact는 HoYoverse의 상표이며, 이 사이트는 비공식 팬 사이트예요.
+  </footer>
+
+  <script>
+/* 원신 진열대 DPS 계산기 - 계산 엔진
+ * 브라우저에서는 window.GCalc 로, Node 테스트에서는 module.exports 로 쓰입니다.
+ * 모든 퍼센트 값은 소수(0.466 = 46.6%)로 다룹니다.
+ */
+(function (root) {
+  'use strict';
+
+  // ───────────────────────── 스킬 계수 배율표 ─────────────────────────
+  // 원소전투/원소폭발 표준 배율 (1~15레벨)
+  const SE = [1, 1.075, 1.15, 1.25, 1.325, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.125, 2.25, 2.375];
+  // 일반공격 계열 배율 (마비카 불꽃 질주 평타 1타 기준)
+  const MAV_NA1 = [57.26, 61.93, 66.59, 73.25, 77.91, 83.23, 90.56, 97.88, 105.21, 113.2, 121.19, 129.18, 137.17, 145.16, 153.15];
+  const SP = MAV_NA1.map(v => v / 57.26);
+  // 호두 일반공격 배율 (강공격 기준)
+  const HT_CA = [135.96, 145.23, 154.5, 166.86, 176.13, 186.94, 200.85, 214.76, 228.66, 242.56, 256.47, 270.37, 284.28, 298.18, 312.09];
+  const SHT = HT_CA.map(v => v / 135.96);
+  const scale = (lv1, table) => table.map(f => lv1 * f);
+
+  const T = {
+    mavuika: {
+      na: [
+        MAV_NA1,
+        [59.13, 63.95, 68.76, 75.63, 80.45, 85.95, 93.51, 101.08, 108.64, 116.89, 125.14, 133.39, 141.64, 149.89, 158.15],
+        [69.99, 75.68, 81.38, 89.52, 95.21, 101.72, 110.68, 119.63, 128.58, 138.35, 148.11, 157.88, 167.64, 177.41, 187.17],
+        [69.7, 75.38, 81.05, 89.16, 94.83, 101.31, 110.23, 119.15, 128.06, 137.79, 147.51, 157.24, 166.97, 176.69, 186.42],
+        [91, 98.41, 105.82, 116.4, 123.81, 132.27, 143.91, 155.55, 167.19, 179.89, 192.59, 205.29, 217.99, 230.68, 243.38]
+      ],
+      skill: scale(74.4, SE),
+      sunfell: scale(444.8, SE),
+      fsSunfell: [1.6, 1.72, 1.84, 2, 2.12, 2.24, 2.4, 2.56, 2.72, 2.88, 3.04, 3.2, 3.4, 3.6, 3.8],
+      fsNA: [0.26, 0.28, 0.3, 0.33, 0.35, 0.37, 0.41, 0.44, 0.47, 0.51, 0.55, 0.58, 0.62, 0.65, 0.69]
+    },
+    citlali: {
+      skill: scale(72.96, SE),
+      frostfall: scale(17.02, SE),
+      iceStorm: scale(537.6, SE),
+      skull: scale(134.4, SE)
+    },
+    xilonen: {
+      rush: scale(179.2, SE),
+      shred: Array.from({ length: 15 }, (_, i) => 9 + 3 * i),
+      na: [scale(56.02, SP), scale(55.05, SP), scale(65.82, SP), scale(86.03, SP)]
+    },
+    bennett: {
+      skill: scale(137.6, SE),
+      burst: scale(232.8, SE),
+      atkRatio: scale(56, SE)
+    },
+    hutao: {
+      n1: scale(46.89, SHT),
+      ca: HT_CA,
+      hpToAtk: [3.84, 4.07, 4.3, 4.6, 4.83, 5.06, 5.36, 5.66, 5.96, 6.26, 6.55, 6.85, 7.15, 7.45, 7.75],
+      blossom: scale(64, SE),
+      burstLow: [379.09, 401.79, 424.49, 454, 476.7, 499.4, 528.91, 558.42, 587.93, 617.44, 646.95, 676.46, 705.97, 735.48, 764.99]
+    },
+    yelan: {
+      skill: scale(22.61, SE),
+      burst: scale(7.31, SE),
+      throw: scale(4.87, SE)
+    },
+    xingqiu: {
+      skill1: scale(168, SE),
+      skill2: scale(191.2, SE),
+      sword: scale(54.27, SE)
+    },
+    zhongli: {
+      hold: scale(80, SE),
+      resonance: scale(32, SE),
+      burst: scale(401.08, SE)
+    }
+  };
+  // 레벨(1~15)에 맞는 계수를 소수로
+  const tl = (arr, lvl) => arr[Math.max(1, Math.min(15, lvl || 1)) - 1] / 100;
+
+  // ───────────────────────── 캐릭터 정보 ─────────────────────────
+  const ID = {
+    MAVUIKA: 10000106, CITLALI: 10000107, XILONEN: 10000103, BENNETT: 10000032,
+    HUTAO: 10000046, YELAN: 10000060, XINGQIU: 10000025, ZHONGLI: 10000030
+  };
+
+  const CHAR_INFO = {
+    [ID.MAVUIKA]: { name: '마비카', element: 'pyro', icon: 'UI_AvatarIcon_Mavuika' },
+    [ID.CITLALI]: { name: '시틀라리', element: 'cryo', icon: 'UI_AvatarIcon_Citlali' },
+    [ID.XILONEN]: { name: '실로닌', element: 'geo', icon: 'UI_AvatarIcon_Xilonen' },
+    [ID.BENNETT]: { name: '베넷', element: 'pyro', icon: 'UI_AvatarIcon_Bennett' },
+    [ID.HUTAO]: { name: '호두', element: 'pyro', icon: 'UI_AvatarIcon_Hutao' },
+    [ID.YELAN]: { name: '야란', element: 'hydro', icon: 'UI_AvatarIcon_Yelan' },
+    [ID.XINGQIU]: { name: '행추', element: 'hydro', icon: 'UI_AvatarIcon_Xingqiu' },
+    [ID.ZHONGLI]: { name: '종려', element: 'geo', icon: 'UI_AvatarIcon_Zhongli' }
+  };
+
+  // 진열대에 없을 때 쓰는 "표준 세팅" (레벨 90, 무난한 세팅 기준 추정치)
+  const st = (o) => Object.assign({
+    baseHp: 15000, hp: 20000, baseAtk: 800, atk: 1500, baseDef: 800, def: 1000,
+    cr: 0.05, cd: 0.5, er: 1, em: 0, heal: 0,
+    dmg: { physical: 0, pyro: 0, electro: 0, hydro: 0, dendro: 0, anemo: 0, geo: 0, cryo: 0 }
+  }, o);
+  const dmg = (el, v) => Object.assign({ physical: 0, pyro: 0, electro: 0, hydro: 0, dendro: 0, anemo: 0, geo: 0, cryo: 0 }, { [el]: v });
+
+  const DEFAULTS = {
+    [ID.MAVUIKA]: { level: 90, cons: 0, talents: { na: 9, e: 9, q: 9 },
+      stats: st({ baseHp: 12552, hp: 19000, baseAtk: 1100, atk: 2400, baseDef: 790, def: 950, cr: 0.7, cd: 2.0, er: 1.15, em: 80, dmg: dmg('pyro', 0.466) }),
+      weapon: { nameEn: 'A Thousand Blazing Suns', id: 12514, refine: 1 }, sets: { obsidiancodex: 4 } },
+    [ID.CITLALI]: { level: 90, cons: 0, talents: { na: 1, e: 9, q: 9 },
+      stats: st({ baseHp: 11634, hp: 19000, baseAtk: 580, atk: 1000, baseDef: 763, def: 900, cr: 0.3, cd: 0.8, er: 1.6, em: 900, dmg: dmg('cryo', 0) }),
+      weapon: { nameEn: '', refine: 1 }, sets: { scrolloftheheroofcindercity: 4 } },
+    [ID.XILONEN]: { level: 90, cons: 0, talents: { na: 1, e: 9, q: 9 },
+      stats: st({ baseHp: 12405, hp: 18000, baseAtk: 700, atk: 1000, baseDef: 1100, def: 2800, cr: 0.3, cd: 0.8, er: 1.6, em: 0, dmg: dmg('geo', 0) }),
+      weapon: { nameEn: '', refine: 1 }, sets: { scrolloftheheroofcindercity: 4 } },
+    [ID.BENNETT]: { level: 90, cons: 5, talents: { na: 1, e: 9, q: 13 },
+      stats: st({ baseHp: 12397, hp: 25000, baseAtk: 756, atk: 1600, baseDef: 771, def: 900, cr: 0.3, cd: 0.8, er: 2.2, em: 0, dmg: dmg('pyro', 0) }),
+      weapon: { nameEn: '', refine: 1 }, sets: { noblesseoblige: 4 } },
+    [ID.HUTAO]: { level: 90, cons: 0, talents: { na: 9, e: 9, q: 9 },
+      stats: st({ baseHp: 15552, hp: 35000, baseAtk: 714, atk: 1150, baseDef: 876, def: 950, cr: 0.7, cd: 2.2, er: 1.1, em: 150, dmg: dmg('pyro', 0.616) }),
+      weapon: { nameEn: 'Staff of Homa', id: 13501, refine: 1 }, sets: { crimsonwitchofflames: 4 } },
+    [ID.YELAN]: { level: 90, cons: 0, talents: { na: 1, e: 9, q: 9 },
+      stats: st({ baseHp: 14450, hp: 32000, baseAtk: 790, atk: 1100, baseDef: 548, def: 700, cr: 0.7, cd: 1.8, er: 1.8, em: 0, dmg: dmg('hydro', 0.466) }),
+      weapon: { nameEn: 'Aqua Simulacra', id: 15508, refine: 1 }, sets: { emblemofseveredfate: 4 } },
+    [ID.XINGQIU]: { level: 90, cons: 6, talents: { na: 1, e: 12, q: 12 },
+      stats: st({ baseHp: 10222, hp: 17000, baseAtk: 712, atk: 1600, baseDef: 758, def: 950, cr: 0.65, cd: 1.4, er: 1.8, em: 0, dmg: dmg('hydro', 0.666) }),
+      weapon: { nameEn: '', refine: 1 }, sets: { emblemofseveredfate: 4 } },
+    [ID.ZHONGLI]: { level: 90, cons: 0, talents: { na: 1, e: 9, q: 9 },
+      stats: st({ baseHp: 14695, hp: 50000, baseAtk: 700, atk: 1200, baseDef: 738, def: 900, cr: 0.3, cd: 0.8, er: 1.3, em: 0, dmg: dmg('geo', 0.288) }),
+      weapon: { nameEn: '', refine: 1 }, sets: { tenacityofthemillelith: 4 } }
+  };
+
+  // ───────────────────────── 공통 공식 ─────────────────────────
+  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const hasSet = (c, setName, n) => (c.sets && (c.sets[norm(setName)] || 0) >= n);
+  const weaponIs = (c, nameEn, id) => c.weapon && ((id && c.weapon.id === id) || (nameEn && norm(c.weapon.nameEn) === norm(nameEn)));
+
+  function resMult(res) {
+    if (res < 0) return 1 - res / 2;
+    if (res < 0.75) return 1 - res;
+    return 1 / (4 * res + 1);
+  }
+  function defMult(charLvl, enemyLvl) {
+    return (charLvl + 100) / ((charLvl + 100) + (enemyLvl + 100));
+  }
+  function ampMult(base, em, bonus) {
+    return base * (1 + (2.78 * em) / (em + 1400) + (bonus || 0));
+  }
+
+  // 캐릭터 최종 스탯 상태 만들기 (진열대 패널 스탯에서 시작)
+  function makeState(c) {
+    const s = c.stats;
+    return {
+      lvl: c.level || 90,
+      baseAtk: s.baseAtk, baseHp: s.baseHp, baseDef: s.baseDef,
+      atk: s.atk, hp: s.hp, def: s.def, em: s.em || 0,
+      cr: s.cr, cd: s.cd, er: s.er,
+      dmgEl: Object.assign({}, s.dmg),
+      dmgAll: 0,
+      cat: { na: 0, ca: 0, e: 0, q: 0 },
+      reactBonus: 0
+    };
+  }
+
+  function hitDamage(s, hit, env) {
+    const stat = { atk: s.atk, hp: s.hp, def: s.def, em: s.em };
+    let base = hit.flat || 0;
+    for (const [k, m] of hit.scale) base += stat[k] * m;
+    const bonus = 1 + (s.dmgEl[hit.el] || 0) + s.dmgAll + (s.cat[hit.cat] || 0) + (hit.bonus || 0);
+    const cr = Math.max(0, Math.min(1, s.cr + (hit.cr || 0)));
+    const cd = s.cd + (hit.cd || 0);
+    const crit = 1 + cr * cd;
+    const res = env.res[hit.el] !== undefined ? env.res[hit.el] : env.baseRes;
+    let amp = 1;
+    if (hit.react && hit.react.ratio > 0) {
+      const m = ampMult(hit.react.base, s.em, s.reactBonus);
+      amp = hit.react.ratio * m + (1 - hit.react.ratio);
+    }
+    return base * bonus * crit * defMult(s.lvl, env.enemyLvl) * resMult(res) * amp;
+  }
+
+  // ───────────────────────── 조합 정의 ─────────────────────────
+  // 각 조합은 build(ctx) 로 멤버별 상태/타격 목록/버프 목록을 만듭니다.
+  // counts: 로테이션 한 번에 각 타격을 몇 번 하는지 (화면에서 수정 가능)
+
+  const TEAMS = [
+    {
+      id: 'mavuika-citlali-xilonen-bennett',
+      name: '마시실베',
+      full: '마비카 · 시틀라리 · 실로닌 · 베넷',
+      members: [ID.MAVUIKA, ID.CITLALI, ID.XILONEN, ID.BENNETT],
+      main: ID.MAVUIKA,
+      defaults: {
+        rotSec: 20, enemyLvl: 100, fs: 200,
+        react: { [ID.MAVUIKA]: 0.3 },
+        counts: {
+          mav_e: 1, mav_q: 1, mav_chain: 3,
+          cit_e: 1, cit_frost: 6, cit_q: 1, cit_skull: 3,
+          xil_e: 1, xil_na: 1,
+          ben_e: 3, ben_q: 1
+        }
+      },
+      countLabels: {
+        mav_e: '마비카 원소전투', mav_q: '마비카 원소폭발(낙일 참격)', mav_chain: '마비카 불꽃 질주 평타 5타 콤보 횟수',
+        cit_e: '시틀라리 원소전투', cit_frost: '시틀라리 서리폭풍', cit_q: '시틀라리 원소폭발', cit_skull: '시틀라리 해골',
+        xil_e: '실로닌 원소전투 돌진', xil_na: '실로닌 롤러 평타 4타 콤보',
+        ben_e: '베넷 원소전투', ben_q: '베넷 원소폭발'
+      },
+      reactLabel: { [ID.MAVUIKA]: '마비카 용융 비율' },
+      build(ctx) {
+        const { get, opts, buffs } = ctx;
+        const M = get(ID.MAVUIKA), C = get(ID.CITLALI), X = get(ID.XILONEN), B = get(ID.BENNETT);
+        const sM = makeState(M), sC = makeState(C), sX = makeState(X), sB = makeState(B);
+        const all = [sM, sC, sX, sB];
+        const env = { enemyLvl: opts.enemyLvl, baseRes: 0.1, res: {} };
+
+        // 내성 감소
+        const xShred = tl(T.xilonen.shred, X.talents.e);
+        const meltOn = (opts.react[ID.MAVUIKA] || 0) > 0;
+        env.res.pyro = 0.1 - xShred - (meltOn ? 0.2 : 0);
+        env.res.cryo = 0.1 - xShred;
+        env.res.geo = 0.1 - xShred;
+        buffs.push(`실로닌 샘플러: 불·얼음·바위 내성 -${pct(xShred)}`);
+        if (meltOn) buffs.push('시틀라리 고유특성: 용융 발생 시 불 내성 -20%');
+
+        // 원소공명 (불 2명)
+        all.forEach(s => { s.atk += s.baseAtk * 0.25; });
+        buffs.push('불 원소공명: 공격력 +25%');
+
+        // 베넷 원소폭발 (필드 안: 마비카, 베넷)
+        const benFlat = B.stats.baseAtk * (tl(T.bennett.atkRatio, B.talents.q) + (B.cons >= 1 ? 0.2 : 0));
+        [sM, sB].forEach(s => { s.atk += benFlat; });
+        buffs.push(`베넷 원소폭발: 공격력 +${Math.round(benFlat)} (베넷 기초공격력 ${Math.round(B.stats.baseAtk)} 기준${B.cons >= 1 ? ', 1돌 포함' : ''})`);
+        if (B.cons >= 6) { sM.dmgEl.pyro += 0.15; buffs.push('베넷 6돌: 불 피해 +15% (마비카)'); }
+
+        // 성유물 세트 (파티 버프)
+        if (hasSet(B, 'Noblesse Oblige', 4)) { all.forEach(s => { s.atk += s.baseAtk * 0.2; }); buffs.push('베넷 옛 왕실의 의식 4세트: 공격력 +20%'); }
+        if (hasSet(B, 'Noblesse Oblige', 2)) sB.cat.q += 0.2;
+        if (hasSet(C, 'Scroll of the Hero of Cinder City', 4) || hasSet(X, 'Scroll of the Hero of Cinder City', 4)) {
+          [sM, sB].forEach(s => { s.dmgEl.pyro += 0.4; });
+          buffs.push('잿더미성 용사의 두루마리 4세트(시틀라리/실로닌): 불 피해 +40%');
+        }
+        if ([M, C, X, B].some(c => hasSet(c, 'Instructor', 4))) { all.forEach(s => { s.em += 120; }); buffs.push('교관 4세트: 원소 마스터리 +120'); }
+
+        // 마비카 본인
+        sM.atk += sM.baseAtk * 0.3; buffs.push('마비카 고유특성: 밤혼 폭발 후 공격력 +30%');
+        if (weaponIs(M, 'A Thousand Blazing Suns', 12514)) {
+          const r = (M.weapon.refine || 1) - 1;
+          const k = 1.75;
+          sM.cd += 0.2 * (1 + 0.25 * r) * k;
+          sM.atk += sM.baseAtk * 0.28 * (1 + 0.25 * r) * k;
+          buffs.push(`마비카 전용무기(천 개의 타오르는 태양) 밤혼 강화: 치피 +${pct(0.2 * (1 + 0.25 * r) * k)}, 공격력 +${pct(0.28 * (1 + 0.25 * r) * k)}`);
+        }
+        if (hasSet(M, 'Obsidian Codex', 2)) { sM.dmgAll += 0.15; buffs.push('흑요석 비전 2세트: 밤혼 상태 피해 +15%'); }
+        if (hasSet(M, 'Obsidian Codex', 4)) { sM.cr += 0.4; buffs.push('흑요석 비전 4세트: 치명타 확률 +40%'); }
+        if (hasSet(M, 'Marechaussee Hunter', 4)) { sM.cr += 0.36; buffs.push('그림자 사냥꾼 4세트: 치확 +36%'); }
+
+        const fs = Math.max(0, Math.min(200, opts.fs));
+        const a4 = Math.min(0.4, 0.002 * fs);
+        buffs.push(`마비카 고유특성(투지 ${fs} 소모): 파티 피해 +${pct(a4)} (시간에 따라 감소 → 평타 구간 평균 ${pct(a4 * 0.8)})`);
+
+        const qLv = M.talents.q, meltR = opts.react[ID.MAVUIKA] || 0;
+        const melt = { base: 2.0, ratio: meltR };
+        const n = opts.counts;
+        const hits = [];
+        hits.push({ who: ID.MAVUIKA, s: sM, key: 'mav_e', label: '원소전투', el: 'pyro', cat: 'e', scale: [['atk', tl(T.mavuika.skill, M.talents.e)]], react: melt, n: n.mav_e });
+        hits.push({ who: ID.MAVUIKA, s: sM, key: 'mav_q', label: '낙일 참격 (원소폭발)', el: 'pyro', cat: 'q',
+          scale: [['atk', tl(T.mavuika.sunfell, qLv) + tl(T.mavuika.fsSunfell, qLv) * fs]], bonus: a4, react: melt, n: n.mav_q });
+        const naBonusPerFs = tl(T.mavuika.fsNA, qLv);
+        T.mavuika.na.forEach((row, i) => {
+          hits.push({ who: ID.MAVUIKA, s: sM, key: 'mav_chain', label: `불꽃 질주 평타 ${i + 1}타`, el: 'pyro', cat: 'na',
+            scale: [['atk', tl(row, M.talents.na) + naBonusPerFs * fs]], bonus: a4 * 0.8, react: melt, n: n.mav_chain });
+        });
+
+        // 시틀라리
+        hits.push({ who: ID.CITLALI, s: sC, key: 'cit_e', label: '원소전투', el: 'cryo', cat: 'e', scale: [['atk', tl(T.citlali.skill, C.talents.e)]], n: n.cit_e });
+        hits.push({ who: ID.CITLALI, s: sC, key: 'cit_frost', label: '서리폭풍', el: 'cryo', cat: 'e', scale: [['atk', tl(T.citlali.frostfall, C.talents.e)], ['em', 0.9]], n: n.cit_frost });
+        hits.push({ who: ID.CITLALI, s: sC, key: 'cit_q', label: '얼음 폭풍 (원소폭발)', el: 'cryo', cat: 'q', scale: [['atk', tl(T.citlali.iceStorm, C.talents.q)], ['em', 12]], n: n.cit_q });
+        hits.push({ who: ID.CITLALI, s: sC, key: 'cit_skull', label: '해골', el: 'cryo', cat: 'q', scale: [['atk', tl(T.citlali.skull, C.talents.q)]], n: n.cit_skull });
+
+        // 실로닌
+        hits.push({ who: ID.XILONEN, s: sX, key: 'xil_e', label: '원소전투 돌진', el: 'geo', cat: 'e', scale: [['def', tl(T.xilonen.rush, X.talents.e)]], n: n.xil_e });
+        T.xilonen.na.forEach((row, i) => {
+          hits.push({ who: ID.XILONEN, s: sX, key: 'xil_na', label: `롤러 평타 ${i + 1}타`, el: 'geo', cat: 'na', scale: [['def', tl(row, X.talents.na)]], n: n.xil_na });
+        });
+
+        // 베넷
+        hits.push({ who: ID.BENNETT, s: sB, key: 'ben_e', label: '원소전투', el: 'pyro', cat: 'e', scale: [['atk', tl(T.bennett.skill, B.talents.e)]], n: n.ben_e });
+        hits.push({ who: ID.BENNETT, s: sB, key: 'ben_q', label: '원소폭발', el: 'pyro', cat: 'q', scale: [['atk', tl(T.bennett.burst, B.talents.q)]], n: n.ben_q });
+
+        return { env, hits, states: { [ID.MAVUIKA]: sM, [ID.CITLALI]: sC, [ID.XILONEN]: sX, [ID.BENNETT]: sB } };
+      }
+    },
+    {
+      id: 'hutao-yelan-xingqiu-zhongli',
+      name: '호야행종',
+      full: '호두 · 야란 · 행추 · 종려',
+      members: [ID.HUTAO, ID.YELAN, ID.XINGQIU, ID.ZHONGLI],
+      main: ID.HUTAO,
+      defaults: {
+        rotSec: 20, enemyLvl: 100, yelanRamp: 0.27,
+        react: { [ID.HUTAO]: 0.8 },
+        counts: {
+          hu_n1: 9, hu_ca: 9, hu_bb: 3, hu_q: 1,
+          ye_e: 1, ye_q: 1, ye_throw: 39,
+          xq_e: 1, xq_sword: 32,
+          zl_hold: 1, zl_res: 8
+        }
+      },
+      countLabels: {
+        hu_n1: '호두 평타 1타', hu_ca: '호두 강공격', hu_bb: '호두 혈매향', hu_q: '호두 원소폭발(저체력)',
+        ye_e: '야란 원소전투', ye_q: '야란 원소폭발 첫 타', ye_throw: '야란 협동공격 화살 (1회 3발)',
+        xq_e: '행추 원소전투', xq_sword: '행추 비검',
+        zl_hold: '종려 원소전투 (길게)', zl_res: '종려 석비 공명'
+      },
+      reactLabel: { [ID.HUTAO]: '호두 증발 비율' },
+      build(ctx) {
+        const { get, opts, buffs } = ctx;
+        const H = get(ID.HUTAO), Y = get(ID.YELAN), Q = get(ID.XINGQIU), Z = get(ID.ZHONGLI);
+        const sH = makeState(H), sY = makeState(Y), sQ = makeState(Q), sZ = makeState(Z);
+        const all = [sH, sY, sQ, sZ];
+        const env = { enemyLvl: opts.enemyLvl, baseRes: 0.1, res: {} };
+
+        // 종려 실드: 모든 내성 -20%
+        env.baseRes = 0.1 - 0.2;
+        ['pyro', 'hydro', 'geo', 'physical'].forEach(e => { env.res[e] = 0.1 - 0.2; });
+        buffs.push('종려 옥방패: 모든 원소 내성 -20%');
+        if (Q.cons >= 2) { env.res.hydro -= 0.15; buffs.push('행추 2돌: 물 내성 -15%'); }
+
+        // 물 원소공명
+        all.forEach(s => { s.hp += s.baseHp * 0.25; });
+        buffs.push('물 원소공명: HP +25%');
+
+        if (hasSet(Z, 'Tenacity of the Millelith', 4)) { all.forEach(s => { s.atk += s.baseAtk * 0.2; }); buffs.push('종려 천암 4세트: 공격력 +20%'); }
+        if ([H, Y, Q, Z].some(c => hasSet(c, 'Instructor', 4))) { all.forEach(s => { s.em += 120; }); buffs.push('교관 4세트: 원소 마스터리 +120'); }
+        if ([Y, Q, Z].some(c => hasSet(c, 'Scroll of the Hero of Cinder City', 4))) {
+          sH.dmgEl.pyro += 0.12; sY.dmgEl.hydro += 0.12; sQ.dmgEl.hydro += 0.12;
+          buffs.push('잿더미성 용사의 두루마리 4세트: 불/물 피해 +12%');
+        }
+
+        // 호두
+        const huE = Math.min(tl(T.hutao.hpToAtk, H.talents.e) * sH.hp, 4 * sH.baseAtk);
+        if (weaponIs(H, 'Staff of Homa', 13501)) {
+          const r = (H.weapon.refine || 1) - 1;
+          const extra = (0.01 + 0.002 * r) * sH.hp; // HP 50% 미만 추가분 (1재련 1.0% ~ 5재련 1.8%)
+          sH.atk += extra;
+          buffs.push(`호마의 지팡이(HP 50% 미만): 공격력 +${Math.round(extra)}`);
+        }
+        sH.atk += huE;
+        buffs.push(`호두 원소전투(피안 나비): 공격력 +${Math.round(huE)} (최대 HP ${Math.round(sH.hp)} 기준)`);
+        sH.dmgEl.pyro += 0.33; buffs.push('호두 고유특성(HP 50% 이하): 불 피해 +33%');
+        if (hasSet(H, 'Crimson Witch of Flames', 4)) { sH.dmgEl.pyro += 0.075; sH.reactBonus += 0.15; buffs.push('불타오르는 화염의 마녀 4세트: 증발 +15%, 불 피해 +7.5%'); }
+        if (hasSet(H, "Shimenawa's Reminiscence", 4)) { sH.cat.na += 0.5; sH.cat.ca += 0.5; buffs.push('추억의 시메나와 4세트: 평타·강공격 +50%'); }
+        if (hasSet(H, 'Marechaussee Hunter', 4)) { sH.cr += 0.36; buffs.push('그림자 사냥꾼 4세트: 치확 +36%'); }
+        const ramp = opts.yelanRamp;
+        sH.dmgAll += ramp; buffs.push(`야란 고유특성: 필드 캐릭터 피해 +${pct(ramp)} (구간 평균)`);
+
+        // 야란 (파티 원소 종류 수에 따른 HP)
+        const els = new Set([H, Y, Q, Z].map(c => c.element));
+        const yA1 = [0, 0.06, 0.12, 0.18, 0.3][Math.min(4, els.size)];
+        sY.hp += sY.baseHp * yA1; buffs.push(`야란 고유특성: 파티 원소 ${els.size}종 → HP +${pct(yA1)}`);
+        if (weaponIs(Y, 'Aqua Simulacra', 15508)) { const r = (Y.weapon.refine || 1) - 1; sY.dmgAll += 0.2 + 0.05 * r; buffs.push(`약수 유영: 야란 피해 +${pct(0.2 + 0.05 * r)}`); }
+        [[Y, sY], [Q, sQ]].forEach(([c, s]) => {
+          if (hasSet(c, 'Emblem of Severed Fate', 4)) s.cat.q += Math.min(0.75, s.er * 0.25);
+        });
+        if (hasSet(Y, 'Emblem of Severed Fate', 4) || hasSet(Q, 'Emblem of Severed Fate', 4)) buffs.push('절연의 기치 4세트: 원소충전 효율의 25%만큼 원소폭발 피해 증가');
+
+        const hRatio = opts.react[ID.HUTAO] || 0;
+        const vape = { base: 1.5, ratio: hRatio };
+        const n = opts.counts;
+        const hits = [];
+        hits.push({ who: ID.HUTAO, s: sH, key: 'hu_n1', label: '평타 1타', el: 'pyro', cat: 'na', scale: [['atk', tl(T.hutao.n1, H.talents.na)]], react: vape, n: n.hu_n1 });
+        hits.push({ who: ID.HUTAO, s: sH, key: 'hu_ca', label: '강공격', el: 'pyro', cat: 'ca', scale: [['atk', tl(T.hutao.ca, H.talents.na)]], react: vape, n: n.hu_ca });
+        hits.push({ who: ID.HUTAO, s: sH, key: 'hu_bb', label: '혈매향', el: 'pyro', cat: 'e', scale: [['atk', tl(T.hutao.blossom, H.talents.e)]], react: vape, n: n.hu_bb });
+        hits.push({ who: ID.HUTAO, s: sH, key: 'hu_q', label: '원소폭발 (저체력)', el: 'pyro', cat: 'q', scale: [['atk', tl(T.hutao.burstLow, H.talents.q)]], react: vape, n: n.hu_q });
+
+        hits.push({ who: ID.YELAN, s: sY, key: 'ye_e', label: '원소전투', el: 'hydro', cat: 'e', scale: [['hp', tl(T.yelan.skill, Y.talents.e)]], n: n.ye_e });
+        hits.push({ who: ID.YELAN, s: sY, key: 'ye_q', label: '원소폭발 첫 타', el: 'hydro', cat: 'q', scale: [['hp', tl(T.yelan.burst, Y.talents.q)]], n: n.ye_q });
+        hits.push({ who: ID.YELAN, s: sY, key: 'ye_throw', label: '협동공격 화살', el: 'hydro', cat: 'q', scale: [['hp', tl(T.yelan.throw, Y.talents.q)]], n: n.ye_throw });
+
+        hits.push({ who: ID.XINGQIU, s: sQ, key: 'xq_e', label: '원소전투 1타', el: 'hydro', cat: 'e', scale: [['atk', tl(T.xingqiu.skill1, Q.talents.e)]], n: n.xq_e });
+        hits.push({ who: ID.XINGQIU, s: sQ, key: 'xq_e', label: '원소전투 2타', el: 'hydro', cat: 'e', scale: [['atk', tl(T.xingqiu.skill2, Q.talents.e)]], n: n.xq_e });
+        hits.push({ who: ID.XINGQIU, s: sQ, key: 'xq_sword', label: '비검', el: 'hydro', cat: 'q', scale: [['atk', tl(T.xingqiu.sword, Q.talents.q)]], n: n.xq_sword });
+
+        hits.push({ who: ID.ZHONGLI, s: sZ, key: 'zl_hold', label: '원소전투 (길게)', el: 'geo', cat: 'e', scale: [['atk', tl(T.zhongli.hold, Z.talents.e)], ['hp', 0.019]], n: n.zl_hold });
+        hits.push({ who: ID.ZHONGLI, s: sZ, key: 'zl_res', label: '석비 공명', el: 'geo', cat: 'e', scale: [['atk', tl(T.zhongli.resonance, Z.talents.e)], ['hp', 0.019]], n: n.zl_res });
+
+        return { env, hits, states: { [ID.HUTAO]: sH, [ID.YELAN]: sY, [ID.XINGQIU]: sQ, [ID.ZHONGLI]: sZ } };
+      }
+    }
+  ];
+
+  function pct(v) { return (Math.round(v * 1000) / 10) + '%'; }
+
+  // 진열대 캐릭터(없으면 기본값)로 조합 계산
+  function computeTeam(teamId, showcase, userOpts) {
+    const team = TEAMS.find(t => t.id === teamId);
+    if (!team) throw new Error('unknown team');
+    const byId = {};
+    (showcase || []).forEach(c => { byId[c.id] = c; });
+    const sources = {};
+    const get = (id) => {
+      if (byId[id] && byId[id].stats) { sources[id] = 'showcase'; return byId[id]; }
+      sources[id] = 'default';
+      const d = DEFAULTS[id];
+      return Object.assign({ id, element: CHAR_INFO[id].element, name: CHAR_INFO[id].name }, JSON.parse(JSON.stringify(d)));
+    };
+    const opts = mergeOpts(team.defaults, userOpts);
+    const buffs = [];
+    const built = team.build({ get, opts, buffs });
+
+    const members = team.members.map(id => ({
+      id, name: (byId[id] && byId[id].name) || CHAR_INFO[id].name,
+      icon: (byId[id] && byId[id].icon) || CHAR_INFO[id].icon,
+      element: CHAR_INFO[id].element,
+      source: sources[id], total: 0, hits: [],
+      final: summarizeState(built.states[id])
+    }));
+    const byMember = {};
+    members.forEach(m => { byMember[m.id] = m; });
+    for (const h of built.hits) {
+      const count = Math.max(0, Number(h.n) || 0);
+      const each = hitDamage(h.s, h, built.env);
+      const m = byMember[h.who];
+      m.hits.push({ label: h.label, key: h.key, count, each, total: each * count });
+      m.total += each * count;
+    }
+    const rot = Math.max(1, opts.rotSec);
+    const total = members.reduce((a, m) => a + m.total, 0);
+    members.forEach(m => { m.dps = m.total / rot; m.share = total ? m.total / total : 0; });
+    return { team: { id: team.id, name: team.name, full: team.full, main: team.main }, opts, members, total, dps: total / rot, buffs, env: built.env };
+  }
+
+  function summarizeState(s) {
+    return { atk: s.atk, hp: s.hp, def: s.def, em: s.em, cr: Math.min(1, s.cr), cd: s.cd };
+  }
+
+  function mergeOpts(def, u) {
+    const o = JSON.parse(JSON.stringify(def));
+    if (!u) return o;
+    for (const k of Object.keys(u)) {
+      if (k === 'counts' || k === 'react') Object.assign(o[k], u[k]);
+      else if (u[k] !== undefined && u[k] !== null && u[k] !== '') o[k] = u[k];
+    }
+    return o;
+  }
+
+  function teamsFor(charId) {
+    return TEAMS.filter(t => t.members.includes(Number(charId)));
+  }
+
+  // ───────────────────────── 종결도 (성유물 점수) ─────────────────────────
+  // 5성 부옵 1회 최대 수치
+  const MAX_ROLL = {
+    FIGHT_PROP_HP: 298.75, FIGHT_PROP_ATTACK: 19.45, FIGHT_PROP_DEFENSE: 23.15,
+    FIGHT_PROP_HP_PERCENT: 5.83, FIGHT_PROP_ATTACK_PERCENT: 5.83, FIGHT_PROP_DEFENSE_PERCENT: 7.29,
+    FIGHT_PROP_ELEMENT_MASTERY: 23.31, FIGHT_PROP_CHARGE_EFFICIENCY: 6.48,
+    FIGHT_PROP_CRITICAL: 3.89, FIGHT_PROP_CRITICAL_HURT: 7.77
+  };
+  const W = (o) => Object.assign({ cr: 1, cd: 1, atk: 0, hp: 0, def: 0, em: 0, er: 0, flat: 0.3 }, o);
+  const WEIGHTS = {
+    default: W({ atk: 0.75, em: 0.3, er: 0.3 }),
+    [ID.MAVUIKA]: W({ atk: 1, em: 0.5, er: 0.2 }),
+    [ID.CITLALI]: W({ cr: 0.3, cd: 0.3, em: 1, er: 0.75 }),
+    [ID.XILONEN]: W({ cr: 0.3, cd: 0.3, def: 1, er: 1 }),
+    [ID.BENNETT]: W({ cr: 0.3, cd: 0.3, er: 1, hp: 0.5, atk: 0.3 }),
+    [ID.HUTAO]: W({ hp: 0.8, em: 0.75, atk: 0.5 }),
+    [ID.YELAN]: W({ hp: 1, er: 0.6 }),
+    [ID.XINGQIU]: W({ atk: 0.75, er: 0.6 }),
+    [ID.ZHONGLI]: W({ cr: 0.5, cd: 0.5, hp: 1, er: 0.5, atk: 0.3 }),
+    10000087: W({ hp: 0.8, er: 0.3 }),          // 느비예트
+    10000089: W({ hp: 0.8, er: 0.75 }),         // 푸리나
+    10000073: W({ em: 1, er: 0.3 }),            // 나히다
+    10000047: W({ cr: 0.3, cd: 0.3, em: 1, er: 1 }), // 카즈하
+    10000052: W({ atk: 0.75, er: 0.75 }),       // 라이덴
+    10000096: W({ atk: 1, em: 0.3 }),           // 아를레키노
+    10000037: W({ atk: 0.75, em: 0.5 }),        // 감우
+    10000002: W({ atk: 0.75, er: 0.3 }),        // 아야카
+    10000063: W({ cr: 0, cd: 0, atk: 1, er: 1 }), // 신학
+    10000082: W({ cr: 0, cd: 0, hp: 1, er: 0.75 }) // 백출
+  };
+  const SUB_KEY = {
+    FIGHT_PROP_CRITICAL: 'cr', FIGHT_PROP_CRITICAL_HURT: 'cd',
+    FIGHT_PROP_ATTACK_PERCENT: 'atk', FIGHT_PROP_HP_PERCENT: 'hp', FIGHT_PROP_DEFENSE_PERCENT: 'def',
+    FIGHT_PROP_ELEMENT_MASTERY: 'em', FIGHT_PROP_CHARGE_EFFICIENCY: 'er',
+    FIGHT_PROP_ATTACK: 'flatAtk', FIGHT_PROP_HP: 'flatHp', FIGHT_PROP_DEFENSE: 'flatDef'
+  };
+  function subWeight(w, prop) {
+    const k = SUB_KEY[prop];
+    if (!k) return 0;
+    if (k === 'flatAtk') return w.atk * w.flat;
+    if (k === 'flatHp') return w.hp * w.flat;
+    if (k === 'flatDef') return w.def * w.flat;
+    return w[k] || 0;
+  }
+  const FULL_ROLLS = 40; // 이 정도 유효 옵션이면 "종결" 100%
+
+  function scoreBuild(c) {
+    const w = WEIGHTS[c.id] || WEIGHTS.default;
+    let rolls = 0, cv = 0;
+    const pieces = (c.artifacts || []).map(a => {
+      let r = 0;
+      const subs = (a.subs || []).map(sb => {
+        const max = MAX_ROLL[sb.prop];
+        const n = max ? sb.value / max : 0;
+        const wt = subWeight(w, sb.prop);
+        r += n * wt;
+        if (sb.prop === 'FIGHT_PROP_CRITICAL') cv += sb.value * 2;
+        if (sb.prop === 'FIGHT_PROP_CRITICAL_HURT') cv += sb.value;
+        return Object.assign({}, sb, { rolls: n, weight: wt });
+      });
+      rolls += r;
+      return Object.assign({}, a, { subs, score: r });
+    });
+    const percent = Math.min(100, rolls / FULL_ROLLS * 100);
+    const grade = percent >= 90 ? '종결' : percent >= 75 ? '준종결' : percent >= 60 ? '쓸만함' : percent >= 45 ? '육성중' : '시작';
+    return { rolls, percent, grade, cv, pieces, weights: w, custom: !!WEIGHTS[c.id] };
+  }
+
+  const API = { TEAMS, ID, CHAR_INFO, DEFAULTS, T, computeTeam, teamsFor, scoreBuild, hitDamage, resMult, defMult, ampMult, norm, pct };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  else root.GCalc = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/* 화면 로직 */
+(function () {
+  'use strict';
+  const G = window.GCalc;
+  const $ = (s) => document.querySelector(s);
+  const UI = 'https://enka.network/ui/';
+
+  const state = {
+    data: null,
+    selected: null,
+    tab: 'build',
+    teamId: null,
+    opts: {}, // teamId -> 사용자가 바꾼 가정값
+    akasha: null // { status: 'loading'|'ok'|'fail', chars, profileUrl }
+  };
+
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (n) => Math.round(n).toLocaleString('ko-KR');
+  const pct = (v, d = 1) => (v * 100).toFixed(d) + '%';
+  const iconUrl = (name) => name ? UI + name + '.png' : 'data:,';
+  const elColor = (el) => `var(--${el || 'unknown'})`;
+  const EL_KO = { pyro: '불', hydro: '물', cryo: '얼음', electro: '번개', anemo: '바람', geo: '바위', dendro: '풀', physical: '물리', unknown: '?' };
+
+  const PROP = {
+    FIGHT_PROP_HP: ['HP', false], FIGHT_PROP_HP_PERCENT: ['HP', true],
+    FIGHT_PROP_ATTACK: ['공격력', false], FIGHT_PROP_ATTACK_PERCENT: ['공격력', true],
+    FIGHT_PROP_DEFENSE: ['방어력', false], FIGHT_PROP_DEFENSE_PERCENT: ['방어력', true],
+    FIGHT_PROP_ELEMENT_MASTERY: ['원소 마스터리', false], FIGHT_PROP_CHARGE_EFFICIENCY: ['원소충전', true],
+    FIGHT_PROP_CRITICAL: ['치명타 확률', true], FIGHT_PROP_CRITICAL_HURT: ['치명타 피해', true],
+    FIGHT_PROP_HEAL_ADD: ['치유 보너스', true], FIGHT_PROP_PHYSICAL_ADD_HURT: ['물리 피해', true],
+    FIGHT_PROP_FIRE_ADD_HURT: ['불 피해', true], FIGHT_PROP_WATER_ADD_HURT: ['물 피해', true],
+    FIGHT_PROP_ICE_ADD_HURT: ['얼음 피해', true], FIGHT_PROP_ELEC_ADD_HURT: ['번개 피해', true],
+    FIGHT_PROP_WIND_ADD_HURT: ['바람 피해', true], FIGHT_PROP_ROCK_ADD_HURT: ['바위 피해', true],
+    FIGHT_PROP_GRASS_ADD_HURT: ['풀 피해', true]
+  };
+  function propText(prop, value) {
+    const p = PROP[prop] || [prop, false];
+    return [p[0], p[1] ? (Math.round(value * 10) / 10) + '%' : fmt(value)];
+  }
+  const SLOT_KO = { flower: '꽃', plume: '깃털', sands: '모래', goblet: '성배', circlet: '왕관' };
+
+  // ─────────── 불러오기 ───────────
+  const form = $('#uidForm'), input = $('#uidInput'), btn = $('#uidBtn'), msg = $('#msg');
+
+  function setMsg(text, err) { msg.innerHTML = text; msg.classList.toggle('err', !!err); }
+
+  async function load(uid, pick) {
+    uid = String(uid || '').trim();
+    if (!/^\d{9,10}$/.test(uid)) { setMsg('UID는 9~10자리 숫자예요.', true); return; }
+    btn.disabled = true;
+    setMsg('<span class="spin"></span>진열대를 불러오는 중이에요…');
+    try {
+      const r = await fetch('api/data?uid=' + uid);
+      let data = null;
+      try { data = await r.json(); } catch (e) { /* 무시 */ }
+      if (!r.ok || !data || data.error) throw new Error((data && data.error) || '불러오기에 실패했어요. (' + r.status + ')');
+      state.data = data;
+      try { localStorage.setItem('lastUid', uid); } catch (e) { /* 무시 */ }
+      const chars = data.characters || [];
+      if (data.detailsHidden) setMsg('진열대 캐릭터는 있지만 상세 정보가 숨겨져 있어요. 게임에서 <b>캐릭터 상세 표시</b>를 켜고 몇 분 뒤 다시 조회해 주세요.', true);
+      else if (!chars.length) setMsg('진열대에 캐릭터가 없어요. 게임에서 캐릭터를 진열대에 올려 주세요.', true);
+      else setMsg(data.storeOk ? '' : '캐릭터 이름 데이터를 못 받아서 일부 이름이 숫자로 보일 수 있어요.');
+      const want = Number(pick);
+      state.selected = chars.some(c => c.id === want) ? want : (chars[0] && chars[0].id) || null;
+      state.tab = pick ? state.tab : 'build';
+      state.teamId = null;
+      state.akasha = { status: 'loading', chars: {}, profileUrl: 'https://akasha.cv/profile/' + uid, uid };
+      render();
+      updateUrl();
+      loadAkasha(uid);
+    } catch (e) {
+      setMsg(esc(e.message || '불러오기에 실패했어요.'), true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function loadAkasha(uid) {
+    let next;
+    try {
+      const r = await fetch('api/data?src=akasha&uid=' + uid);
+      const d = await r.json();
+      next = { status: d.ok ? 'ok' : 'fail', chars: d.chars || {}, profileUrl: d.profileUrl || state.akasha.profileUrl, uid };
+    } catch (e) {
+      next = { status: 'fail', chars: {}, profileUrl: 'https://akasha.cv/profile/' + uid, uid };
+    }
+    if (!state.data || state.data.uid !== uid) return; // 그 사이 다른 UID를 조회했으면 무시
+    state.akasha = next;
+    renderRoster();
+    if (state.tab === 'build') renderDetail();
+  }
+
+  function akashaBest(id) {
+    const a = state.akasha;
+    const list = a && a.chars && a.chars[id];
+    return list && list.length ? list[0] : null;
+  }
+  const topText = (p) => '상위 ' + (p < 1 ? p.toFixed(2) : p.toFixed(1)) + '%';
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); load(input.value); });
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 10); });
+
+  function updateUrl() {
+    if (!state.data) return;
+    const q = new URLSearchParams();
+    q.set('uid', state.data.uid);
+    if (state.selected) q.set('c', state.selected);
+    history.replaceState(null, '', '?' + q.toString());
+  }
+
+  // ─────────── 그리기 ───────────
+  function render() {
+    renderPlayer();
+    renderRoster();
+    renderDetail();
+  }
+
+  function renderPlayer() {
+    const el = $('#player');
+    const d = state.data;
+    if (!d) { el.classList.add('hidden'); return; }
+    const p = d.player;
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      ${p.profileIcon ? `<img src="${iconUrl(p.profileIcon)}" alt="">` : ''}
+      <div>
+        <div class="nick">${esc(p.nickname)}</div>
+        <div class="meta"><span>모험 등급 ${p.level}</span><span>세계 레벨 ${p.worldLevel}</span>${p.abyss ? `<span>나선 비경 ${esc(p.abyss)}</span>` : ''}<span>UID ${esc(d.uid)}</span><a href="https://akasha.cv/profile/${esc(d.uid)}" target="_blank" rel="noopener">아카샤 프로필 ↗</a></div>
+        ${p.signature ? `<div class="sig">${esc(p.signature)}</div>` : ''}
+      </div>`;
+  }
+
+  function renderRoster() {
+    const el = $('#roster');
+    const chars = (state.data && state.data.characters) || [];
+    if (!chars.length) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = `<p class="roster-title">진열대 캐릭터 ${chars.length}명 · 눌러서 자세히 보기 <span style="color:var(--accent)">●</span> = 조합 DPS 지원</p>
+      <div class="grid">${chars.map(c => {
+        const s = G.scoreBuild(c);
+        const hasTeam = G.teamsFor(c.id).length > 0;
+        return `<button class="cc ${c.id === state.selected ? 'on' : ''}" data-id="${c.id}">
+          <span class="el-bar" style="background:${elColor(c.element)}"></span>
+          <img src="${iconUrl(c.icon)}" alt="" loading="lazy">
+          <span>
+            <div class="n">${esc(c.name)}</div>
+            <div class="l">Lv.${c.level} · ${c.cons}돌</div>
+            <span class="g grade-${s.grade}">${s.grade} ${Math.round(s.percent)}%</span>
+            ${akashaBest(c.id) ? `<div class="ak" title="아카샤 순위 기준"><span>아카샤</span>${topText(akashaBest(c.id).topPercent)}</div>` : ''}
+          </span>
+          ${hasTeam ? '<span class="teamdot" title="조합 DPS 지원"></span>' : ''}
+        </button>`;
+      }).join('')}</div>`;
+    el.querySelectorAll('.cc').forEach(b => b.addEventListener('click', () => {
+      state.selected = Number(b.dataset.id);
+      state.teamId = null;
+      render();
+      updateUrl();
+      $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+
+  function renderDetail() {
+    const el = $('#detail');
+    const c = state.data && (state.data.characters || []).find(x => x.id === state.selected);
+    if (!c) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.style.setProperty('--el', elColor(c.element));
+    const teams = G.teamsFor(c.id);
+    el.innerHTML = `
+      <div class="dhead">
+        <img src="${iconUrl(c.icon)}" alt="">
+        <div>
+          <div class="name">${esc(c.name)}</div>
+          <div class="sub">${EL_KO[c.element] || ''} · Lv.${c.level} · ${c.cons}돌 · 특성 ${c.talents.na}/${c.talents.e}/${c.talents.q}</div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button data-tab="build" class="${state.tab === 'build' ? 'on' : ''}">빌드 · 종결도</button>
+        <button data-tab="dps" class="${state.tab === 'dps' ? 'on' : ''}">조합 DPS${teams.length ? ` (${teams.length})` : ''}</button>
+      </div>
+      <div class="pane" id="pane"></div>`;
+    el.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { state.tab = b.dataset.tab; renderDetail(); }));
+    if (state.tab === 'build') renderBuild(c); else renderDps(c, teams);
+  }
+
+  // ─────────── 빌드 탭 ───────────
+  function renderBuild(c) {
+    const pane = $('#pane');
+    const s = G.scoreBuild(c);
+    const st = c.stats;
+    const dmgEntries = Object.entries(st.dmg).filter(([, v]) => v > 0.001).sort((a, b) => b[1] - a[1]);
+    const rows = [
+      ['HP', fmt(st.hp)], ['공격력', fmt(st.atk)], ['방어력', fmt(st.def)], ['원소 마스터리', fmt(st.em)],
+      ['치명타 확률', pct(st.cr)], ['치명타 피해', pct(st.cd)], ['원소충전 효율', pct(st.er)],
+      ...dmgEntries.map(([k, v]) => [`${EL_KO[k]} 피해 보너스`, pct(v)])
+    ];
+    const w = c.weapon;
+    pane.innerHTML = `
+      <div class="scorebox">
+        <div class="kpi"><div class="k">종결도</div><div class="v grade-${s.grade}">${Math.round(s.percent)}<small>%</small></div><div class="meter"><i style="width:${s.percent}%"></i></div></div>
+        <div class="kpi"><div class="k">등급</div><div class="v grade-${s.grade}">${s.grade}</div></div>
+        <div class="kpi"><div class="k">치명 수치 (CV)</div><div class="v">${s.cv.toFixed(1)}</div></div>
+      </div>
+      ${akashaSection(c)}
+      <div class="two">
+        <div>
+          <p class="box-title">무기</p>
+          ${w ? `<div class="weapon"><img src="${iconUrl(w.icon)}" alt=""><div><div class="wn">${esc(w.name)} <span style="color:var(--muted);font-weight:500">${w.refine}재련</span></div>
+            <div class="ws">Lv.${w.level} · 기초 공격력 ${fmt(w.baseAtk)}${w.sub ? ' · ' + propText(w.sub.prop, w.sub.value).join(' ') : ''}</div></div></div>` : '<p class="empty">무기 정보 없음</p>'}
+          <p class="box-title">최종 스탯 (게임 패널 기준)</p>
+          <table class="stats">${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
+        </div>
+        <div>
+          <p class="box-title">성유물 · 유효 옵션 ${s.rolls.toFixed(1)}회 (${G.teamsFor(c.id).length || s.custom ? '캐릭터별 기준' : '기본 기준'})</p>
+          ${s.pieces.length ? `<div class="arts">${s.pieces.map(a => artCard(a)).join('')}</div>` : '<p class="empty">성유물 정보 없음</p>'}
+          ${setSummary(c)}
+        </div>
+      </div>
+      <p class="hint">종결도는 캐릭터에게 쓸모 있는 부옵이 최대치 기준으로 몇 번 붙었는지(유효 옵션 수)를 40회 = 100%로 환산한 값이에요. 밝게 표시된 부옵이 유효 옵션이에요.</p>`;
+  }
+
+  function akashaSection(c) {
+    const a = state.akasha;
+    if (!a) return '';
+    const link = `<a href="${esc(a.profileUrl)}" target="_blank" rel="noopener">아카샤에서 보기 ↗</a>`;
+    let inner;
+    if (a.status === 'loading') inner = `<p class="empty"><span class="spin"></span>아카샤 순위 불러오는 중…</p>`;
+    else if (a.status === 'fail') inner = `<p class="empty">아카샤 순위를 불러오지 못했어요. ${link}</p>`;
+    else {
+      const list = a.chars[c.id] || [];
+      if (!list.length) {
+        inner = `<p class="empty">아카샤에 이 캐릭터 순위가 없어요. 아카샤에서 한 번 조회해야 순위가 생기고, 아카샤가 순위를 안 매기는 캐릭터도 있어요. ${link}</p>`;
+      } else {
+        inner = `<div class="aklist">${list.map(x => `<div class="akrow">
+            <div class="akp">${topText(x.topPercent)}</div>
+            <div class="akm"><div class="akn">${esc(x.name)}${x.variant ? ` <span>${esc(x.variant)}</span>` : ''}</div>
+              <div class="aks">${x.approx ? '약 ' : ''}${fmt(x.ranking)}위 / ${fmt(x.outOf)}명${x.weapon && x.weapon.name ? ' · ' + esc(x.weapon.name) + ' ' + x.weapon.refinement + '재련' : ''}</div></div>
+            <div class="akbar"><i style="width:${Math.max(2, 100 - x.topPercent)}%"></i></div>
+          </div>`).join('')}</div><p class="hint" style="margin-top:6px">아카샤 자체 계산 기준 순위예요. ${link}</p>`;
+      }
+    }
+    return `<div class="akbox"><p class="box-title">아카샤 순위</p>${inner}</div>`;
+  }
+
+  function artCard(a) {
+    const [mk, mv] = propText(a.main.prop, a.main.value);
+    return `<div class="art">
+      <div class="ah"><img src="${iconUrl(a.icon)}" alt="" loading="lazy"><div style="min-width:0"><div class="am">${esc(SLOT_KO[a.slot] || '')} · ${esc(mk)} ${esc(mv)}</div><div class="as">+${a.level} ${esc(a.set)}</div></div></div>
+      <ul>${a.subs.map(sb => {
+        const [k, v] = propText(sb.prop, sb.value);
+        const cls = sb.weight >= 0.75 ? 'w1' : sb.weight > 0 ? 'w2' : '';
+        return `<li class="${cls}"><span>${esc(k)}</span><span>${esc(v)}${sb.weight > 0 ? `<span class="rolls">×${sb.rolls.toFixed(1)}</span>` : ''}</span></li>`;
+      }).join('')}</ul>
+      <div class="ascore">유효 ${a.score.toFixed(1)}회</div>
+    </div>`;
+  }
+
+  function setSummary(c) {
+    const entries = Object.entries(c.sets || {}).filter(([, n]) => n >= 2);
+    if (!entries.length) return '';
+    return `<p class="hint">세트 효과: ${entries.map(([k, n]) => `${esc((c.setNames || {})[k] || k)} ${n >= 4 ? 4 : 2}세트`).join(', ')}</p>`;
+  }
+
+  // ─────────── 조합 DPS 탭 ───────────
+  function renderDps(c, teams) {
+    const pane = $('#pane');
+    if (!teams.length) {
+      pane.innerHTML = `<p class="empty">${esc(c.name)} 포함 조합은 아직 준비 중이에요.</p>
+        <p class="empty">지금 계산할 수 있는 조합: ${G.TEAMS.map(t => `<b>${esc(t.name)}</b> (${esc(t.full)})`).join(', ')}</p>`;
+      return;
+    }
+    if (!state.teamId || !teams.some(t => t.id === state.teamId)) state.teamId = teams[0].id;
+    const team = teams.find(t => t.id === state.teamId);
+    const userOpts = state.opts[team.id] || (state.opts[team.id] = { counts: {}, react: {} });
+    const result = G.computeTeam(team.id, state.data.characters, userOpts);
+    const maxTotal = Math.max(...result.members.map(m => m.total), 1);
+    const usedDefault = result.members.filter(m => m.source === 'default');
+
+    pane.innerHTML = `
+      <div class="chips">${teams.map(t => `<button class="chip ${t.id === team.id ? 'on' : ''}" data-team="${t.id}">${esc(t.name)}</button>`).join('')}</div>
+      <div class="bigdps"><span class="v">${fmt(result.dps)}</span><span class="k">팀 DPS (초당 피해)</span></div>
+      <div class="teamname">${esc(team.full)} · 로테이션 ${result.opts.rotSec}초 · 적 Lv.${result.opts.enemyLvl}</div>
+      ${result.members.map(m => memberRow(m, maxTotal)).join('')}
+      ${usedDefault.length ? `<p class="note">빨간 <b>기본값</b> 표시 캐릭터는 진열대에 없어서 표준 세팅으로 계산했어요. 진열대에 올리면 내 스펙으로 바뀌어요.</p>` : ''}
+
+      <div class="section">
+        <details class="fold"><summary>적용된 버프 (${result.buffs.length})</summary>
+          <ul class="buffs">${result.buffs.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+        </details>
+      </div>
+      <div class="section">
+        <details class="fold" ${state.optsOpen ? 'open' : ''} id="optsFold"><summary>계산 가정 바꾸기</summary>
+          <div class="opts" id="opts">${optionsHtml(team, result.opts)}</div>
+          <p style="margin:10px 0 0"><button class="linkbtn" id="resetOpts">기본값으로 되돌리기</button></p>
+        </details>
+      </div>
+      <p class="note">계산 방식: 진열대의 최종 스탯(성유물·무기 고정 효과 포함)에 조합 버프와 조건부 효과를 더하고, 정해 둔 로테이션 동안의 기대 피해(치명타 평균)를 로테이션 시간으로 나눴어요. 적은 기본 내성 10%예요. 별자리 효과는 베넷 1·6돌, 행추 2돌만 반영했고, 무기 조건부 효과는 일부 무기(천 개의 타오르는 태양, 호마의 지팡이, 약수 유영)만 반영했어요.</p>`;
+
+    pane.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { state.teamId = b.dataset.team; renderDetail(); }));
+    $('#optsFold').addEventListener('toggle', (e) => { state.optsOpen = e.target.open; });
+    $('#resetOpts').addEventListener('click', () => { state.opts[team.id] = { counts: {}, react: {} }; renderDetail(); });
+    pane.querySelectorAll('[data-opt]').forEach(inp => {
+      const out = inp.parentElement.querySelector('output');
+      inp.addEventListener('input', () => { if (out) out.textContent = formatOpt(inp); });
+      inp.addEventListener('change', () => {
+        const v = Number(inp.value);
+        const [kind, key] = inp.dataset.opt.split(':');
+        if (kind === 'count') userOpts.counts[key] = v;
+        else if (kind === 'react') userOpts.react[key] = v / 100;
+        else userOpts[kind] = kind === 'yelanRamp' ? v / 100 : v;
+        renderDetail();
+      });
+    });
+  }
+
+  function formatOpt(inp) {
+    const kind = inp.dataset.opt.split(':')[0];
+    return (kind === 'react' || kind === 'yelanRamp') ? inp.value + '%' : inp.value;
+  }
+
+  function memberRow(m, maxTotal) {
+    const f = m.final;
+    return `<details class="mem">
+      <summary>
+        <img src="${iconUrl(m.icon)}" alt="" loading="lazy">
+        <div class="grow">
+          <div class="mn">${esc(m.name)} <span class="badge ${m.source === 'showcase' ? 'sc' : 'df'}">${m.source === 'showcase' ? '진열대' : '기본값'}</span></div>
+          <div class="bar"><i style="width:${(m.total / maxTotal * 100).toFixed(1)}%;background:${elColor(m.element)}"></i></div>
+        </div>
+        <div class="md"><b>${fmt(m.dps)}</b><span>${pct(m.share, 0)}</span></div>
+      </summary>
+      <table class="hits"><tr><th>타격</th><th>횟수</th><th>1회 평균</th><th>합계</th></tr>
+        ${m.hits.map(h => `<tr><td>${esc(h.label)}</td><td>${h.count}</td><td>${fmt(h.each)}</td><td>${fmt(h.total)}</td></tr>`).join('')}
+      </table>
+      <div class="finals"><span>버프 적용 공격력 ${fmt(f.atk)}</span><span>HP ${fmt(f.hp)}</span><span>방어력 ${fmt(f.def)}</span><span>마스터리 ${fmt(f.em)}</span><span>치확 ${pct(f.cr)}</span><span>치피 ${pct(f.cd)}</span></div>
+    </details>`;
+  }
+
+  function optionsHtml(team, o) {
+    const rows = [];
+    rows.push(numOpt('로테이션 시간(초)', 'rotSec', o.rotSec, 5, 60, 1));
+    rows.push(numOpt('적 레벨', 'enemyLvl', o.enemyLvl, 1, 120, 1));
+    if (o.fs !== undefined) rows.push(numOpt('마비카 투지', 'fs', o.fs, 0, 200, 10));
+    if (o.yelanRamp !== undefined) rows.push(rangeOpt('야란 피해 버프 평균', 'yelanRamp', Math.round(o.yelanRamp * 100), 0, 50));
+    for (const [id, label] of Object.entries(team.reactLabel || {})) {
+      rows.push(rangeOpt(label, 'react:' + id, Math.round((o.react[id] || 0) * 100), 0, 100));
+    }
+    for (const [k, label] of Object.entries(team.countLabels)) {
+      rows.push(numOpt(label, 'count:' + k, o.counts[k], 0, 99, 1));
+    }
+    return rows.join('');
+  }
+  function numOpt(label, key, v, min, max, step) {
+    return `<label class="opt"><span>${esc(label)}</span><input type="number" data-opt="${key}" value="${v}" min="${min}" max="${max}" step="${step}"></label>`;
+  }
+  function rangeOpt(label, key, v, min, max) {
+    return `<label class="opt"><span>${esc(label)}</span><span style="display:flex;align-items:center;gap:6px"><input type="range" data-opt="${key}" value="${v}" min="${min}" max="${max}"><output>${v}%</output></span></label>`;
+  }
+
+  // ─────────── 시작 ───────────
+  const params = new URLSearchParams(location.search);
+  let startUid = params.get('uid');
+  if (!startUid) { try { startUid = localStorage.getItem('lastUid'); } catch (e) { /* 무시 */ } }
+  if (startUid) {
+    input.value = startUid;
+    if (params.get('uid')) load(startUid, params.get('c'));
+  }
+})();
+
+</script>
+</body>
+</html>
